@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اكشط واربح - مسابقة أفضل عمل مؤثر</title>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .scratch-card {
+            width: 450px; /* زيادة عرض البطاقة */
+            height: 250px; /* زيادة ارتفاع البطاقة */
+            background-color: #ccc;
+            border-radius: 10px;
+            position: relative;
+            margin: 20px auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .hidden-message {
+            display: none;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            position: absolute;
+            top: 0;
+            left: -20px; /* تحريك النص لليسار */
+            width: calc(100% + 20px); /* تعديل العرض ليشمل التحريك */
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            flex-direction: column; /* استخدام الاتجاه العمودي */
+        }
+
+        .hidden-message h2 {
+            color: #333;
+            margin-bottom: 10px; /* إضافة هامش أسفل العنوان */
+            text-align: center; /* توسيط النص */
+        }
+
+        .hidden-message p {
+            color: #555;
+            margin-bottom: 20px; /* إضافة هامش أسفل النص */
+            text-align: center; /* توسيط النص */
+        }
+
+        .hidden-message button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .hidden-message button:hover {
+            background-color: #45a049;
+        }
+
+        #submissionForm {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        form input[type="text"], form input[type="file"] {
+            padding: 10px;
+            margin: 10px;
+            width: 80%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        form button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        form button:hover {
+            background-color: #45a049;
+        }
+
+        .submissions {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .submission-item {
+            margin: 5px 0;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: right; /* محاذاة النص إلى اليمين */
+        }
+
+        .submission-item a {
+            color: #4CAF50; /* لون الرابط */
+            text-decoration: none; /* إزالة التسطير */
+        }
+
+        .submission-item a:hover {
+            text-decoration: underline; /* إضافة التسطير عند التمرير */
+        }
+
+        .delete-button {
+            padding: 5px 10px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>اكشط واربح - مسابقة أفضل عمل مؤثر</h1>
+    <p>اكشط للحصول على معلومات حول المسابقة!</p>
+    
+    <div class="scratch-card">
+        <canvas id="canvas"></canvas>
+        <div class="hidden-message" id="hiddenMessage">
+            <h2>مسابقة أفضل عمل مؤثر عن وفاة الرسول ﷺ</h2>
+            <p>شارك الآن وقدم أفضل عملك المؤثر عن وفاة الرسول صلى الله عليه وسلم.</p>
+            <button id="showFormButton">تسليم العمل</button>
+        </div>
+    </div>
+
+    <div id="submissionForm">
+        <form id="form">
+            <input type="text" id="name" placeholder="اسم المشارك" required><br>
+            <input type="file" id="work" required><br>
+            <button type="submit">تسليم العمل</button>
+        </form>
+    </div>
+
+    <div class="submissions" id="submissionsList">
+        <h3>المشاركات المقدمة:</h3>
+        <div id="submissionsContainer"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const hiddenMessage = document.getElementById('hiddenMessage');
+        const showFormButton = document.getElementById('showFormButton');
+        const submissionForm = document.getElementById('submissionForm');
+        const submissionsContainer = document.getElementById('submissionsContainer');
+
+        canvas.width = 450; // زيادة العرض
+        canvas.height = 250; // زيادة الارتفاع
+
+        // رسم طبقة الكشط
+        ctx.fillStyle = '#999'; // لون الطبقة العلوية
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff'; // لون النص
+        ctx.font = '24px Cairo';
+        ctx.textAlign = 'center';
+        ctx.fillText('اكشط هنا!', canvas.width / 2, canvas.height / 2);
+
+        // أحداث الكشط
+        let isMouseDown = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            scratch(e);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                scratch(e);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            checkIfScratched();
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+        });
+
+        function scratch(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.globalCompositeOperation = 'destination-out'; // مسح المنطقة
+            ctx.beginPath();
+            ctx.arc(x, y, 25, 0, Math.PI * 2, false); // زيادة حجم الكشط
+            ctx.fill();
+        }
+
+        function checkIfScratched() {
+            // تحقق مما إذا تم كشف الرسالة
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let scratchedArea = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] === 0) { // إذا كانت البكسل شفافة
+                    scratchedArea++;
+                }
+            }
+
+            // إذا كانت المساحة المكشوفة أكثر من 50%
+            if (scratchedArea > (canvas.width * canvas.height) *0.95) {
+                hiddenMessage.style.display = 'flex'; // إظهار الرسالة
+                canvas.style.pointerEvents = 'none'; // تعطيل الكشط بعد الإظهار
+                loadSubmissions(); // تحميل المشاركات عند كشف الرسالة
+            }
+        }
+
+        // عرض النموذج عند الضغط على زر تسليم العمل
+        showFormButton.addEventListener('click', () => {
+            submissionForm.style.display = 'flex';
+        });
+
+        // التعامل مع تسليم النموذج
+        document.getElementById('form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const work = document.getElementById('work').files[0];
+
+            if (name && work) {
+                const submissionTime = new Date().toLocaleString(); // الحصول على وقت التسليم
+                const fileLink = URL.createObjectURL(work); // إنشاء رابط للملف
+
+                // إضافة المشاركة إلى localStorage
+                addSubmissionToLocalStorage(name, submissionTime, fileLink);
+                
+                // عرض المشاركة في الواجهة
+                displaySubmission(name, submissionTime, fileLink);
+                
+                // إعادة تعيين النموذج
+                document.getElementById('form').reset();
+                submissionForm.style.display = 'none'; // إخفاء النموذج بعد التسليم
+            } else {
+                alert('يرجى ملء جميع الحقول المطلوبة.');
+            }
+        });
+
+        // إضافة المشاركة إلى localStorage
+        function addSubmissionToLocalStorage(name, time, fileLink) {
+            const submissions = JSON.parse(localStorage.getItem('submissions')) || [];
+            submissions.push({ name, time, fileLink });
+            localStorage.setItem('submissions', JSON.stringify(submissions));
+        }
+
+        // عرض المشاركات من localStorage
+        function loadSubmissions() {
+            const submissions = JSON.parse(localStorage.getItem('submissions')) || [];
+            submissions.forEach(submission => {
+                displaySubmission(submission.name, submission.time, submission.fileLink);
+            });
+        }
+
+        // عرض المشاركة في الواجهة
+        function displaySubmission(name, time, fileLink) {
+            const submissionDiv = document.createElement('div');
+            submissionDiv.classList.add('submission-item');
+            submissionDiv.innerHTML = `<strong>${name}</strong> - ${time} <br> <a href="${fileLink}" target="_blank">فتح المرفق</a>
+            <button class="delete-button" onclick="deleteSubmission('${name}', '${time}')">حذف</button>`;
+            submissionsContainer.appendChild(submissionDiv);
+        }
+
+        // حذف المشاركة
+        function deleteSubmission(name, time) {
+            const submissions = JSON.parse(localStorage.getItem('submissions')) || [];
+            const updatedSubmissions = submissions.filter(submission => !(submission.name === name && submission.time === time));
+            localStorage.setItem('submissions', JSON.stringify(updatedSubmissions));
+            submissionsContainer.innerHTML = ''; // مسح جميع المشاركات الحالية
+            updatedSubmissions.forEach(submission => displaySubmission(submission.name, submission.time, submission.fileLink)); // إعادة عرض المشاركات المتبقية
+        }
+
+        // تحميل المشاركات عند تحميل الصفحة
+        window.onload = loadSubmissions;
+    </script>
+</body>
+</html>
